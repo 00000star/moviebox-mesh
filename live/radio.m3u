@@ -1,0 +1,35 @@
+#EXTM3U
+#EXTINF:-1 group-title="Radio",SomaFM: Groove Salad
+https://ice1.somafm.com/groovesalad-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Lush
+https://ice1.somafm.com/lush-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Space Station Soma
+https://ice1.somafm.com/spacestation-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Indie Pop Rocks
+https://ice1.somafm.com/indiepop-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Secret Agent
+https://ice1.somafm.com/secretagent-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Underground 80s
+https://ice1.somafm.com/u80s-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Boot Liquor
+https://ice1.somafm.com/bootliquor-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Folk Forward
+https://ice1.somafm.com/folkfwd-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Digitalis
+https://ice1.somafm.com/digitalis-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Drone Zone
+https://ice1.somafm.com/dronezone-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Deep Space One
+https://ice1.somafm.com/deepspaceone-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: Fluid
+https://ice1.somafm.com/fluid-128-mp3
+#EXTINF:-1 group-title="Radio",SomaFM: The Trip
+https://ice1.somafm.com/thetrip-128-mp3
+#EXTINF:-1 group-title="Radio",Radio Paradise: Main
+https://stream.radioparadise.com/aac-128
+#EXTINF:-1 group-title="Radio",Radio Paradise: Mellow
+https://stream.radioparadise.com/mellow-128
+#EXTINF:-1 group-title="Radio",Radio Paradise: Rock
+https://stream.radioparadise.com/rock-128
+#EXTINF:-1 group-title="Radio",Radio Paradise: Global
+https://stream.radioparadise.com/global-128

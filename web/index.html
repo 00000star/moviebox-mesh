@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MovieBox Cosmic - All-In-One Cinema, Music & Gaming Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header / Navigation Bar -->
+  <header class="navbar">
+    <div class="logo">
+      <span class="logo-orb"></span>
+      <span class="logo-title">MovieBox <span class="logo-cinema">Cosmic</span></span>
+    </div>
+
+    <!-- Live Cosmic Cinema Clock -->
+    <div class="cinema-clock" id="cinema-clock">
+      <span class="clock-icon">🌌</span>
+      <span class="clock-time" id="clock-display">00:00:00</span>
+    </div>
+
+    <div class="mesh-badge" id="mesh-badge">
+      <span class="pulse-dot"></span>
+      <span id="node-info">Connecting...</span>
+    </div>
+  </header>
+
+  <!-- Network Banner -->
+  <div class="net-banner" id="net-banner">
+    <span class="net-icon">📡</span>
+    <span id="net-text">Discovering local mesh nodes...</span>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="movies">🎬 Movies</button>
+    <button class="tab-btn" data-tab="music">🎵 Music & Radio</button>
+    <button class="tab-btn" data-tab="games">🎮 Games & Arcade</button>
+    <button class="tab-btn" data-tab="live">📺 Live TV</button>
+    <button class="tab-btn" data-tab="apks">📱 Apps Vault</button>
+    <button class="tab-btn" data-tab="readers">📖 Manhwa & Novels</button>
+    <button class="tab-btn" data-tab="wishlist">🌟 Wishlist</button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="content-container">
+
+    <!-- Search Section -->
+    <div class="search-bar-wrap">
+      <input type="text" id="search-input" placeholder="🔍 Search titles, music, games, genres, years..." autocomplete="off">
+    </div>
+
+    <!-- 1. Movies Tab -->
+    <section id="tab-movies" class="tab-content active">
+      <div class="filter-pills" id="movie-filter-pills">
+        <button class="pill-btn active" data-filter="all">All</button>
+        <button class="pill-btn" data-filter="Sci-Fi">🚀 Sci-Fi</button>
+        <button class="pill-btn" data-filter="Action">💥 Action</button>
+        <button class="pill-btn" data-filter="on-pc">💻 On PC</button>
+        <button class="pill-btn" data-filter="on-phone">📱 On Phone</button>
+      </div>
+
+      <div class="section-title-row">
+        <h2>Local Cinema Library</h2>
+        <span class="count-pill" id="media-count">0 items</span>
+      </div>
+
+      <div class="cinema-grid" id="movies-grid">
+        <div class="empty-state">Scanning storage for movies...</div>
+      </div>
+    </section>
+
+    <!-- 2. Music & Radio Tab -->
+    <section id="tab-music" class="tab-content">
+      <div class="filter-pills">
+        <button class="pill-btn active" id="btn-music-tracks">🎵 Local Tracks</button>
+        <button class="pill-btn" id="btn-music-radio">📻 Cosmic Radio</button>
+      </div>
+
+      <div class="section-title-row">
+        <h2>Audio & Music Library</h2>
+        <span class="count-pill" id="music-count">0 tracks</span>
+      </div>
+
+      <div class="cinema-grid" id="music-grid">
+        <div class="empty-state">Scanning local storage for music files...</div>
+      </div>
+    </section>
+
+    <!-- 3. Games & Arcade Tab -->
+    <section id="tab-games" class="tab-content">
+      <div class="section-title-row">
+        <h2>Cosmic Arcade & Cross-Device Gaming</h2>
+        <button class="btn-primary" id="btn-open-gamepad-mode">📱 Open Phone Gamepad</button>
+      </div>
+      <p class="section-desc">Play 100% offline in your browser. Play on PC and use your Phone as a wireless touch gamepad!</p>
+
+      <div class="cinema-grid">
+        <!-- Game 1: Cosmic Starfighter -->
+        <div class="movie-card" onclick="startArcadeGame('starfighter')">
+          <div class="card-poster" style="display:flex; align-items:center; justify-content:center; background:#071329;">
+            <span style="font-size:3rem;">🚀</span>
+            <span class="poster-badge-top-left">Arcade</span>
+            <span class="poster-badge-top-right">60 FPS</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Cosmic Starfighter</div>
+            <div class="card-tags">
+              <span class="tag tag-green">Cross-Platform</span>
+              <span class="tag tag-blue">Phone Gamepad Ready</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-play" style="width:100%;">▶ Launch Game</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Game 2: Cyber Snake -->
+        <div class="movie-card" onclick="startArcadeGame('snake')">
+          <div class="card-poster" style="display:flex; align-items:center; justify-content:center; background:#061c16;">
+            <span style="font-size:3rem;">🐍</span>
+            <span class="poster-badge-top-left">Retro</span>
+            <span class="poster-badge-top-right">Classic</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Cyber Snake 2099</div>
+            <div class="card-tags">
+              <span class="tag tag-green">Arcade</span>
+              <span class="tag">Instant Play</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-play" style="width:100%;">▶ Launch Game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Live TV Tab -->
+    <section id="tab-live" class="tab-content">
+      <div class="filter-pills" id="live-filter-pills">
+        <button class="pill-btn active" data-live-filter="all">All Channels</button>
+        <button class="pill-btn" data-live-filter="Movies">🎬 Movies</button>
+        <button class="pill-btn" data-live-filter="Sports">⚽ Sports</button>
+        <button class="pill-btn" data-live-filter="News">📰 News</button>
+        <button class="pill-btn" data-live-filter="General">🌐 General</button>
+      </div>
+
+      <div class="section-title-row">
+        <h2>IPTV Live Channels</h2>
+        <span class="count-pill" id="live-count">0 channels</span>
+      </div>
+
+      <div class="cinema-grid" id="live-grid">
+        <div class="empty-state">Loading live TV channels...</div>
+      </div>
+    </section>
+
+    <!-- 5. Apps Vault Tab -->
+    <section id="tab-apks" class="tab-content">
+      <div class="section-title-row">
+        <h2>P2P App Store & Tool Vault</h2>
+        <span class="count-pill" id="apk-count">0 apps</span>
+      </div>
+      <p class="section-desc">Download Android APKs and PC companion tools directly over local Wi-Fi without internet.</p>
+      <div class="apps-grid" id="apps-grid">
+        <div class="empty-state">Scanning vault for APKs...</div>
+      </div>
+    </section>
+
+    <!-- 6. Manhwa & Novels Tab -->
+    <section id="tab-readers" class="tab-content">
+      <div class="reader-mode-toggle">
+        <button class="reader-toggle-btn active" id="toggle-manhwa-view">📚 Manhwa / Webtoons</button>
+        <button class="reader-toggle-btn" id="toggle-novels-view">📖 Light Novels</button>
+      </div>
+
+      <div id="manhwa-shelf" class="cinema-grid">
+        <div class="empty-state">Loading Manhwa shelf...</div>
+      </div>
+
+      <div id="novels-shelf" class="cinema-grid" style="display:none;">
+        <div class="empty-state">Loading Novels shelf...</div>
+      </div>
+    </section>
+
+    <!-- 7. Wishlist Tab -->
+    <section id="tab-wishlist" class="tab-content">
+      <div class="section-title-row">
+        <h2>Movie & Series Wishlist</h2>
+        <span class="count-pill" id="wishlist-count">0 requests</span>
+      </div>
+
+      <div class="wishlist-form-card">
+        <h3>Request a Movie / Show</h3>
+        <div class="form-row">
+          <input type="text" id="wish-title" placeholder="Title (e.g. Dune: Prophecy, Gladiator II)" required>
+          <input type="text" id="wish-year" placeholder="Year" style="max-width: 100px;">
+          <input type="text" id="wish-notes" placeholder="Notes (e.g. 1080p, English Audio)">
+          <button id="btn-add-wish" class="btn-primary">Add Request</button>
+        </div>
+      </div>
+
+      <div class="wishlist-list" id="wishlist-list">
+        <div class="empty-state">No requests yet. Add one above!</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Persistent Floating Music Player Bar -->
+  <div class="music-player-bar" id="music-player-bar">
+    <div class="music-info">
+      <span class="music-icon">🎵</span>
+      <div class="music-text">
+        <div class="music-title" id="music-bar-title">Select a track</div>
+        <div class="music-subtitle" id="music-bar-sub">Cosmic Audio Player</div>
+      </div>
+    </div>
+    <div class="music-controls">
+      <button id="btn-music-prev">⏮</button>
+      <button id="btn-music-play" class="btn-music-main">▶</button>
+      <button id="btn-music-next">⏭</button>
+    </div>
+    <audio id="audio-engine" preload="none"></audio>
+  </div>
+
+  <!-- In-Browser Fullscreen Cinema Player Modal -->
+  <div class="player-overlay" id="player-modal">
+    <div class="player-container">
+      <div class="player-header">
+        <div class="player-title" id="player-title">Now Playing</div>
+        <div class="player-header-actions">
+          <button class="stream-mode-badge" id="btn-toggle-stream-mode">Direct Stream</button>
+          <button class="btn-close-player" id="btn-close-player">✕</button>
+        </div>
+      </div>
+      <div class="video-wrapper">
+        <video id="cinema-video" playsinline controls preload="metadata"></video>
+      </div>
+      <div class="player-shortcuts-hint">
+        <span><b>Space:</b> Play/Pause</span> • <span><b>F:</b> Fullscreen</span> • <span><b>←/→:</b> 10s Seek</span> • <span><b>M:</b> Mute</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-Browser Arcade Modal -->
+  <div class="player-overlay" id="arcade-modal">
+    <div class="player-container" style="max-width: 800px;">
+      <div class="player-header">
+        <div class="player-title" id="arcade-game-title">Cosmic Arcade</div>
+        <button class="btn-close-player" id="btn-close-arcade">✕</button>
+      </div>
+      <div style="background:#000; display:flex; justify-content:center; align-items:center; aspect-ratio:4/3; position:relative;">
+        <canvas id="arcade-canvas" width="640" height="480" style="max-width:100%; max-height:100%; background:#05070f;"></canvas>
+      </div>
+      <div class="player-shortcuts-hint">
+        <span><b>Arrow Keys:</b> Move</span> • <span><b>Space / Z:</b> Fire</span> • <span>Or use <b>Phone Gamepad Mode</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phone Virtual Gamepad Overlay (Touch Controller) -->
+  <div class="gamepad-overlay" id="gamepad-modal">
+    <div class="gamepad-topbar">
+      <span>🎮 Cosmic Virtual Gamepad</span>
+      <button id="btn-close-gamepad">✕ Exit Controller</button>
+    </div>
+    <div class="gamepad-body">
+      <!-- D-Pad -->
+      <div class="dpad">
+        <button class="dpad-btn dpad-up" data-btn="dpad_up">▲</button>
+        <button class="dpad-btn dpad-left" data-btn="dpad_left">◀</button>
+        <button class="dpad-btn dpad-center">●</button>
+        <button class="dpad-btn dpad-right" data-btn="dpad_right">▶</button>
+        <button class="dpad-btn dpad-down" data-btn="dpad_down">▼</button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-pad">
+        <button class="act-btn btn-y" data-btn="btn_y">Y</button>
+        <button class="act-btn btn-x" data-btn="btn_x">X</button>
+        <button class="act-btn btn-b" data-btn="btn_b">B</button>
+        <button class="act-btn btn-a" data-btn="btn_a">A</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manhwa Continuous Webtoon Reader Modal -->
+  <div class="reader-overlay" id="manhwa-modal">
+    <div class="reader-container">
+      <div class="reader-header">
+        <div class="reader-title" id="manhwa-modal-title">Webtoon Reader</div>
+        <button class="btn-close-player" id="btn-close-manhwa">✕</button>
+      </div>
+      <div class="webtoon-scroll-canvas" id="manhwa-pages-canvas"></div>
+    </div>
+  </div>
+
+  <!-- Novel Reader Modal -->
+  <div class="reader-overlay" id="novel-modal">
+    <div class="reader-container novel-container">
+      <div class="reader-header">
+        <div class="reader-title" id="novel-modal-title">Novel Reader</div>
+        <div class="novel-controls">
+          <button id="btn-novel-font-dec">A-</button>
+          <button id="btn-novel-font-inc">A+</button>
+          <button class="btn-close-player" id="btn-close-novel">✕</button>
+        </div>
+      </div>
+      <div class="novel-text-body" id="novel-text-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

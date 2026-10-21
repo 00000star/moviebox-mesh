@@ -1,0 +1,26 @@
+# Large binary files & media
+movies/
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.mov
+*.ts
+*.m4v
+*.apk
+*.xapk
+*.iso
+
+# Caches and runtime state
+.thumbs/
+*.log
+*.pid
+.mesh.pid
+progress.json
+offload_manifest.json
+__pycache__/
+*.pyc
+
+# OS metadata
+.DS_Store
+Thumbs.db
