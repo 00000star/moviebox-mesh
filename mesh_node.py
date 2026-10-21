@@ -84,15 +84,35 @@ def get_node_name():
     return socket.gethostname() or "Mesh-Node"
 
 def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    for ifname in ['wlan0', 'wlan1', 'rndis0', 'eth0', 'rmnet_data0']:
+        try:
+            import fcntl, struct
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            ip = socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
+            s.close()
+            if ip and not ip.startswith('127.'):
+                return ip
+        except Exception:
+            pass
     try:
-        s.connect(('10.255.255.255', 1))
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('10.42.0.1', 80))
         ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
         s.close()
-    return ip
+        if ip and not ip.startswith('127.'):
+            return ip
+    except Exception:
+        pass
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if ip and not ip.startswith('127.'):
+            return ip
+    except Exception:
+        pass
+    return '127.0.0.1'
 
 NODE_NAME = get_node_name()
 LOCAL_IP = get_local_ip()
@@ -234,6 +254,7 @@ def scan_local_media():
         os.path.join(BASE_DIR, "movies"),
         os.path.join(user_home, "Videos"),
         os.path.join(user_home, "Movies"),
+        os.path.join(user_home, "Downloads"),
         os.path.join(user_home, "moviebox-mesh", "movies")
     ]
     valid_exts = {'.mp4', '.mkv', '.webm', '.avi', '.mov', '.ts', '.m4v'}
@@ -283,7 +304,8 @@ def scan_local_media():
                             "thumb_url": f"/api/thumb/{item_id}",
                             "stream_url": f"/stream/media?path={urllib.parse.quote(full_path)}",
                             "live_url": f"/play/live/{item_id}",
-                            "url": f"/stream/media?path={urllib.parse.quote(full_path)}"
+                            "url": f"/stream/media?path={urllib.parse.quote(full_path)}",
+                            "from_peer": False
                         })
                     except Exception:
                         continue
@@ -602,6 +624,22 @@ class MeshHTTPHandler(BaseHTTPRequestHandler):
         path = parsed.path
         query = parse_qs(parsed.query)
 
+        if path == "/setup":
+            script = f"""#!/usr/bin/env bash
+echo "=== MovieBox Cosmic Sync & Launch ==="
+HOST="{LOCAL_IP}:{PORT}"
+echo "Connected to Cinema Hub at http://$HOST"
+which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-browser >/dev/null 2>&1 && sensible-browser "http://$HOST" || echo "Please open http://$HOST in your browser"
+"""
+            body = script.encode('utf-8')
+            self.send_response(200)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         # 1. API: Catalog
         if path == "/api/catalog":
             local_media = scan_local_media()
@@ -620,13 +658,40 @@ class MeshHTTPHandler(BaseHTTPRequestHandler):
                     if now - info["last_seen"] < 15:
                         active_peers.append({"ip": ip, **info})
 
+            combined_media = list(local_media)
+            if not query.get("peer") and active_peers:
+                seen_ids = {m.get("id") for m in combined_media}
+                for peer in active_peers:
+                    p_ip = peer.get("ip")
+                    p_port = peer.get("port", PORT)
+                    p_base = f"http://{p_ip}:{p_port}"
+                    try:
+                        req = urllib.request.Request(
+                            f"{p_base}/api/catalog?peer=1",
+                            headers={"User-Agent": "MovieBox-Mesh"}
+                        )
+                        with urllib.request.urlopen(req, timeout=1.5) as resp:
+                            if resp.status == 200:
+                                p_data = json.loads(resp.read().decode('utf-8'))
+                                for item in p_data.get("media", []):
+                                    if item.get("id") not in seen_ids:
+                                        seen_ids.add(item.get("id"))
+                                        item_copy = dict(item)
+                                        item_copy["from_peer"] = True
+                                        for key in ["stream_url", "thumb_url", "live_url", "url"]:
+                                            if key in item_copy and item_copy[key] and not str(item_copy[key]).startswith("http"):
+                                                item_copy[key] = f"{p_base}{item_copy[key]}"
+                                        combined_media.append(item_copy)
+                    except Exception:
+                        pass
+
             self.send_json({
                 "version": VERSION,
                 "code_ts": LOCAL_CODE_TS,
                 "self": {"name": NODE_NAME, "ip": LOCAL_IP, "port": PORT, "version": VERSION, "code_ts": LOCAL_CODE_TS},
                 "peers": active_peers,
                 "unmetered_wifi": is_unmetered_wifi(),
-                "media": local_media,
+                "media": combined_media,
                 "apks": local_apks,
                 "manhwa": manhwa_data,
                 "novels": novels_data,
