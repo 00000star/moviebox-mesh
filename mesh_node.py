@@ -84,7 +84,7 @@ def get_node_name():
     return socket.gethostname() or "Mesh-Node"
 
 def get_local_ip():
-    for ifname in ['wlan0', 'wlan1', 'rndis0', 'eth0', 'rmnet_data0']:
+    for ifname in ['ap0', 'ap1', 'swlan0', 'wlan0', 'wlan1', 'rndis0', 'usb0', 'eth0', 'rmnet_data0', 'wlp2s0']:
         try:
             import fcntl, struct
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -543,6 +543,78 @@ def save_wishlist(data):
 
 # --- UDP Beacon & Peer Discovery ---
 
+def get_candidate_gateways():
+    candidates = set()
+    try:
+        if os.path.exists("/proc/net/route"):
+            with open("/proc/net/route", "r") as f:
+                for line in f.readlines()[1:]:
+                    parts = line.strip().split()
+                    if len(parts) >= 3 and parts[1] == "00000000":
+                        gw_hex = parts[2]
+                        if gw_hex != "00000000":
+                            gw_ip = socket.inet_ntoa(bytes.fromhex(gw_hex)[::-1])
+                            candidates.add(gw_ip)
+    except Exception:
+        pass
+    # Standard hotspot & tethering gateways and peer IPs
+    known = ["10.42.0.1", "10.204.123.211", "10.204.123.153", "10.42.0.70", "192.168.43.1", "192.168.1.1", "192.168.0.1"]
+    for ip in known:
+        candidates.add(ip)
+    return [ip for ip in candidates if ip != LOCAL_IP and not ip.startswith("127.")]
+
+
+def probe_and_register_peer(peer_ip, port=PORT):
+    """Probe candidate peer IP; immediately mark present and fetch catalog info in background."""
+    if not peer_ip or peer_ip == LOCAL_IP or peer_ip.startswith("127."):
+        return
+
+    now = time.time()
+    with PEERS_LOCK:
+        if peer_ip not in PEERS:
+            PEERS[peer_ip] = {
+                "name": f"Peer-{peer_ip}",
+                "port": port,
+                "version": "1.0.0",
+                "code_ts": 0,
+                "media_count": 0,
+                "apk_count": 0,
+                "last_seen": now
+            }
+        else:
+            PEERS[peer_ip]["last_seen"] = now
+
+    def _worker():
+        try:
+            req = urllib.request.Request(
+                f"http://{peer_ip}:{port}/api/catalog?peer=1",
+                headers={"User-Agent": "MovieBox-Mesh"}
+            )
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    s = data.get("self", {})
+                    name = s.get("name") or data.get("node") or f"Node-{peer_ip}"
+                    m_count = len(data.get("media", []))
+                    a_count = len(data.get("apks", []))
+                    ver = data.get("version") or s.get("version", "1.0.0")
+                    code_ts = data.get("code_ts") or s.get("code_ts", 0)
+                    with PEERS_LOCK:
+                        PEERS[peer_ip] = {
+                            "name": name,
+                            "port": port,
+                            "version": ver,
+                            "code_ts": code_ts,
+                            "media_count": m_count,
+                            "apk_count": a_count,
+                            "last_seen": time.time()
+                        }
+        except Exception:
+            pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
 class MeshBeacon(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
@@ -553,6 +625,9 @@ class MeshBeacon(threading.Thread):
     def run(self):
         listener = threading.Thread(target=self.listen_for_peers, daemon=True)
         listener.start()
+
+        prober = threading.Thread(target=self.proactive_gateway_prober, daemon=True)
+        prober.start()
 
         while True:
             try:
@@ -568,10 +643,35 @@ class MeshBeacon(threading.Thread):
                     "apk_count": apk_count,
                     "ts": time.time()
                 }).encode('utf-8')
+                # 1. Global subnet broadcast
                 self.sock.sendto(payload, ('255.255.255.255', DISCOVERY_PORT))
+                # 2. Direct unicast to gateways and known peers
+                targets = set(get_candidate_gateways())
+                with PEERS_LOCK:
+                    targets.update(PEERS.keys())
+                for t in targets:
+                    if t != LOCAL_IP and not t.startswith("127."):
+                        try:
+                            self.sock.sendto(payload, (t, DISCOVERY_PORT))
+                        except Exception:
+                            pass
             except Exception:
                 pass
             time.sleep(5)
+
+    def proactive_gateway_prober(self):
+        while True:
+            try:
+                gateways = get_candidate_gateways()
+                for gw in gateways:
+                    try:
+                        with socket.create_connection((gw, PORT), timeout=0.3):
+                            probe_and_register_peer(gw, PORT)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            time.sleep(6)
 
     def listen_for_peers(self):
         recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -586,7 +686,7 @@ class MeshBeacon(threading.Thread):
                 data, addr = recv_sock.recvfrom(4096)
                 peer_info = json.loads(data.decode('utf-8'))
                 peer_ip = peer_info.get("ip") or addr[0]
-                if peer_ip != LOCAL_IP:
+                if peer_ip != LOCAL_IP and not peer_ip.startswith("127."):
                     with PEERS_LOCK:
                         PEERS[peer_ip] = {
                             "name": peer_info.get("node", "Peer"),
@@ -620,6 +720,10 @@ class MeshHTTPHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
     def do_GET(self):
+        client_ip = self.client_address[0]
+        if client_ip != LOCAL_IP and not client_ip.startswith("127."):
+            probe_and_register_peer(client_ip, PORT)
+
         parsed = urlparse(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
@@ -655,7 +759,7 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
             now = time.time()
             with PEERS_LOCK:
                 for ip, info in list(PEERS.items()):
-                    if now - info["last_seen"] < 15:
+                    if now - info["last_seen"] < 25:
                         active_peers.append({"ip": ip, **info})
 
             combined_media = list(local_media)
@@ -670,7 +774,7 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
                             f"{p_base}/api/catalog?peer=1",
                             headers={"User-Agent": "MovieBox-Mesh"}
                         )
-                        with urllib.request.urlopen(req, timeout=1.5) as resp:
+                        with urllib.request.urlopen(req, timeout=2.0) as resp:
                             if resp.status == 200:
                                 p_data = json.loads(resp.read().decode('utf-8'))
                                 for item in p_data.get("media", []):
@@ -681,6 +785,8 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
                                         for key in ["stream_url", "thumb_url", "live_url", "url"]:
                                             if key in item_copy and item_copy[key] and not str(item_copy[key]).startswith("http"):
                                                 item_copy[key] = f"{p_base}{item_copy[key]}"
+                                        if "url" in item_copy and "stream_url" not in item_copy:
+                                            item_copy["stream_url"] = item_copy["url"]
                                         combined_media.append(item_copy)
                     except Exception:
                         pass
@@ -700,6 +806,61 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
                 "live_tv": live_data.get("channels", []),
                 "live_tv_grouped": live_data.get("grouped", {}),
                 "wishlist": wishlist
+            })
+            return
+
+        # 1b. API: Nodes Status (Hub Federation)
+        if path == "/api/nodes":
+            active_peers = []
+            now = time.time()
+            with PEERS_LOCK:
+                for ip, info in list(PEERS.items()):
+                    if now - info["last_seen"] < 25:
+                        active_peers.append({"ip": ip, **info})
+
+            local_media = scan_local_media()
+            is_phone = os.path.exists("/sdcard") or "android" in sys.platform.lower()
+            local_node = {
+                "name": NODE_NAME,
+                "type": "phone" if is_phone else "pc",
+                "ip": LOCAL_IP,
+                "online": True,
+                "media_count": len(local_media),
+                "badge": "📱 Phone" if is_phone else "💻 PC",
+                "status": "Online (Local Node)"
+            }
+            node_list = [local_node]
+            for p in active_peers:
+                p_name = p.get("name", "Peer Node")
+                p_type = "pc" if any(x in p_name.lower() for x in ["pc", "dell", "latitude", "laptop"]) else ("phone" if "tecno" in p_name.lower() else "mesh")
+                node_list.append({
+                    "name": p_name,
+                    "type": p_type,
+                    "ip": f"http://{p.get('ip')}:{p.get('port', PORT)}",
+                    "online": True,
+                    "media_count": p.get("media_count", 0),
+                    "badge": "💻 PC" if p_type == "pc" else "📱 Phone",
+                    "status": f"Online (Mesh Peer - {p.get('version', '1.0.0')})"
+                })
+            self.send_json({
+                "active_count": len(node_list),
+                "nodes": node_list
+            })
+            return
+
+        # 1c. API: Network Status
+        if path == "/api/network_status":
+            now = time.time()
+            with PEERS_LOCK:
+                active_count = len([p for p in PEERS.values() if now - p.get("last_seen", 0) < 25])
+            self.send_json({
+                "status": "ok",
+                "node": NODE_NAME,
+                "ip": LOCAL_IP,
+                "port": PORT,
+                "version": VERSION,
+                "code_ts": LOCAL_CODE_TS,
+                "peers_count": active_count
             })
             return
 
@@ -848,6 +1009,10 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
         self.send_error(404, "Page Not Found")
 
     def do_POST(self):
+        client_ip = self.client_address[0]
+        if client_ip != LOCAL_IP and not client_ip.startswith("127."):
+            probe_and_register_peer(client_ip, PORT)
+
         parsed = urlparse(self.path)
         path = parsed.path
 
