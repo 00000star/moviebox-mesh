@@ -25,7 +25,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import socketserver
 
 # Configuration Defaults
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 PORT = 8080
 DISCOVERY_PORT = 9999
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -920,6 +920,14 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
             self.serve_file_range(file_path)
             return
 
+        if path == "/stream/download":
+            file_path = query.get("path", [None])[0]
+            if not file_path or not os.path.exists(file_path):
+                self.send_error(404, "Media file not found for download")
+                return
+            self.serve_file_range(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+            return
+
         # 7. In-Browser Live Transmuxer
         if path.startswith("/play/live/"):
             media_id = path.replace("/play/live/", "").strip()
@@ -1172,13 +1180,18 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
             pass
 
     def send_json(self, data, status=200):
-        body = json.dumps(data).encode('utf-8')
-        self.send_response(status)
-        self.send_cors_headers()
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(data, separators=(',', ':')).encode('utf-8')
+            self.send_response(status)
+            self.send_cors_headers()
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception:
+            pass
 
     def serve_static_file(self, file_path, mime_type, cache_seconds=3600):
         try:
@@ -1196,6 +1209,9 @@ which xdg-open >/dev/null 2>&1 && xdg-open "http://$HOST" || which sensible-brow
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    def handle_error(self, request, client_address):
+        # Suppress BrokenPipeError from disconnected clients
+        pass
 
 def main():
     print("=" * 60)

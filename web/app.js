@@ -1,4 +1,4 @@
-// MovieBox Cosmic Edition v1.4.0 (Client Hub Engine)
+// MovieBox Cosmic Edition v1.4.1 (Client Hub Engine)
 let currentCatalog = { media: [], apks: [], live_tv: [], manhwa: [], novels: [], music: [], radio: [], wishlist: [] };
 let activeFilter = 'all';
 let activeLiveFilter = 'all';
@@ -186,6 +186,7 @@ function renderMovies() {
         <div class="card-actions">
           <button class="btn-play" onclick="playMedia('${m.id}', 'direct')">▶ Stream</button>
           <button class="btn-remux" onclick="playMedia('${m.id}', 'transmux')" title="Live transmux for MKV/No VLC">⚡ Transmux</button>
+          <a href="${(m.stream_url || '').replace('/stream/media', '/stream/download')}" class="btn-remux" download style="text-align:center; text-decoration:none;" title="Download and save video file directly to PC storage">⬇️ Save to PC</a>
         </div>
       </div>
     </div>

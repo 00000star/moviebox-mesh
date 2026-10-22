@@ -1,4 +1,4 @@
-// MovieBox Cosmic Edition v1.4.0 (Client Hub Engine)
+// MovieBox Cosmic Edition v1.4.1 (Client Hub Engine)
 let currentCatalog = { media: [], apks: [], live_tv: [], manhwa: [], novels: [], music: [], radio: [], wishlist: [] };
 let activeFilter = 'all';
 let activeLiveFilter = 'all';
@@ -64,10 +64,18 @@ function initTabs() {
 
   // Phone Gamepad Toggle
   document.getElementById('btn-open-gamepad-mode')?.addEventListener('click', () => {
-    document.getElementById('gamepad-modal')?.classList.add('active');
+    const modal = document.getElementById('gamepad-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   });
   document.getElementById('btn-close-gamepad')?.addEventListener('click', () => {
-    document.getElementById('gamepad-modal')?.classList.remove('active');
+    const modal = document.getElementById('gamepad-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
   });
 }
 
@@ -178,6 +186,7 @@ function renderMovies() {
         <div class="card-actions">
           <button class="btn-play" onclick="playMedia('${m.id}', 'direct')">▶ Stream</button>
           <button class="btn-remux" onclick="playMedia('${m.id}', 'transmux')" title="Live transmux for MKV/No VLC">⚡ Transmux</button>
+          <a href="${(m.stream_url || '').replace('/stream/media', '/stream/download')}" class="btn-remux" download style="text-align:center; text-decoration:none;" title="Download and save video file directly to PC storage">⬇️ Save to PC</a>
         </div>
       </div>
     </div>
@@ -242,6 +251,12 @@ function playMusicTrack(index) {
   currentMusicIndex = index;
   const track = currentMusicList[index];
 
+  const bar = document.getElementById('music-player-bar');
+  if (bar) {
+    bar.style.display = 'flex';
+    bar.classList.add('active');
+  }
+
   const audio = document.getElementById('audio-engine');
   const title = document.getElementById('music-bar-title');
   const sub = document.getElementById('music-bar-sub');
@@ -258,6 +273,12 @@ function playMusicTrack(index) {
 function playRadioStream(urlEnc, titleEnc) {
   const url = decodeURIComponent(urlEnc);
   const title = decodeURIComponent(titleEnc);
+
+  const bar = document.getElementById('music-player-bar');
+  if (bar) {
+    bar.style.display = 'flex';
+    bar.classList.add('active');
+  }
 
   const audio = document.getElementById('audio-engine');
   const titleEl = document.getElementById('music-bar-title');
@@ -277,7 +298,10 @@ function startArcadeGame(gameType) {
   const modal = document.getElementById('arcade-modal');
   const canvas = document.getElementById('arcade-canvas');
   const ctx = canvas.getContext('2d');
-  modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
 
   // Cancel any running loop
   if (arcadeAnimationId) cancelAnimationFrame(arcadeAnimationId);
@@ -411,11 +435,25 @@ function playMedia(itemId, mode = 'direct') {
   const modeBtn = document.getElementById('btn-toggle-stream-mode');
 
   if (title) title.textContent = `${item.title} (${item.year || 'Cinema'})`;
-  if (modeBtn) modeBtn.textContent = mode === 'direct' ? 'Direct Stream' : 'Live Transmux';
+  if (modeBtn) {
+    modeBtn.textContent = mode === 'direct' ? 'Direct Stream' : 'Live Transmux';
+    modeBtn.onclick = () => {
+      playMedia(item.id, currentStreamMode === 'direct' ? 'transmux' : 'direct');
+    };
+  }
 
   let playUrl = mode === 'transmux' ? (item.live_url || `/play/live/${item.id}`) : (item.stream_url || item.url);
+  video.onerror = () => {
+    if (currentStreamMode === 'direct') {
+      console.warn(`Direct playback failed for ${item.title}, auto-switching to live transmux...`);
+      playMedia(itemId, 'transmux');
+    }
+  };
   video.src = playUrl;
-  modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
   video.play().catch(() => {});
 }
 
@@ -423,10 +461,14 @@ function closePlayer() {
   const modal = document.getElementById('player-modal');
   const video = document.getElementById('cinema-video');
   if (video) {
+    video.onerror = null;
     video.pause();
     video.src = '';
   }
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
 }
 
 // --- 10. Live TV & Apps Vault ---
@@ -466,7 +508,10 @@ function playLiveStream(urlEncoded, titleEncoded) {
 
   if (titleEl) titleEl.textContent = `📺 Live: ${title}`;
   video.src = url;
-  modal.classList.add('active');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
   video.play().catch(() => {});
 }
 
@@ -558,7 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-close-player')?.addEventListener('click', closePlayer);
   document.getElementById('btn-close-arcade')?.addEventListener('click', () => {
     if (arcadeAnimationId) cancelAnimationFrame(arcadeAnimationId);
-    document.getElementById('arcade-modal')?.classList.remove('active');
+    const modal = document.getElementById('arcade-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
   });
 
   // Keyboard Shortcuts

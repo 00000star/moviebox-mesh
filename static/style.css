@@ -460,7 +460,7 @@ body {
 }
 
 .gamepad-overlay.active {
-  display: flex;
+  display: flex !important;
 }
 
 .gamepad-topbar {
@@ -566,8 +566,8 @@ body {
   padding: 16px;
 }
 
-.player-overlay.active, .reader-overlay.active {
-  display: flex;
+.player-overlay.active, .reader-overlay.active, .music-player-bar.active {
+  display: flex !important;
 }
 
 .player-container, .reader-container {
